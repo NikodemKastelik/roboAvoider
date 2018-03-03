@@ -7,16 +7,16 @@
 
 // <<------------- GLOBAL VARIABLES SECTION ------------->>
 
-volatile uint16_t measurement_1;								//	variable used to capture timer on rising edge
-volatile uint16_t measurement_2;								//	variable used to capture timer on falling edge
+volatile uint16_t measurement_1;					// variable used to capture timer on rising edge
+volatile uint16_t measurement_2;					// variable used to capture timer on falling edge
 
-volatile uint16_t distance_front =  FRONT_TRIGGER_DISTANCE;		// 	variable used to measure distance from the obstacles in front of robot
+volatile uint16_t distance_front =  FRONT_TRIGGER_DISTANCE;		// variable used to measure distance from the obstacles in front of robot
 volatile uint16_t distance_left = SIDE_TRIGGER_DISTANCE;		// -||- left
 volatile uint16_t distance_right = SIDE_TRIGGER_DISTANCE;		// -||- right
 
-volatile uint8_t flag=2;										// flag which controls proper flow of program -
-																// directs which sensor is working at moment
-volatile int measurement_finish_flag = 1;						// control flag used in waiting-for-measurement routines in main function
+volatile uint8_t flag=2;						// flag which controls proper flow of program -
+									// directs which sensor is working at moment
+volatile int measurement_finish_flag = 1;				// control flag used in waiting-for-measurement routines in main function
 
 
 
@@ -128,7 +128,7 @@ void lcd_update()
 
 // <<------------- MOTOR CONTROL SECTION ------------->>
 
-void hcsr04_trigger_pulse()						// routine pulsing hc-sr04
+void hcsr04_trigger_pulse()				// routine pulsing hc-sr04
 {
 	BIT_SET( hcsr04_trigger_port , hcsr04_trigger_pin);
 	_delay_us(10);
@@ -143,7 +143,7 @@ void steer_left(volatile uint16_t *distance , int trigger_distance)
 
 	while(*distance < trigger_distance)
 	{
-		asm volatile ("nop");					// spin as long as there is enough space in front of robot
+		asm volatile ("nop");			// spin as long as there is enough space in front of robot
 	}
 
 
@@ -156,15 +156,15 @@ void steer_left(volatile uint16_t *distance , int trigger_distance)
 void steer_right(volatile uint16_t *distance , int trigger_distance)
 {
 
-	BIT_CLEAR( motor_port , right_motor_pin_1 ); // right wheel reverse rotation
+	BIT_CLEAR( motor_port , right_motor_pin_1 );	// right wheel reverse rotation
 	BIT_SET( motor_port , right_motor_pin_2 );
 
 	while(*distance < trigger_distance)
 	{
-		asm volatile ("nop");					// spin as long as there is enough space in front of robot
+		asm volatile ("nop");			// spin as long as there is enough space in front of robot
 	}
 
-	BIT_SET( motor_port , right_motor_pin_1 ); // right wheel rotate normally
+	BIT_SET( motor_port , right_motor_pin_1 );	// right wheel rotate normally
 	BIT_CLEAR( motor_port , right_motor_pin_2 );
 }
 
@@ -176,19 +176,19 @@ void steer_right(volatile uint16_t *distance , int trigger_distance)
 ISR(TIMER1_CAPT_vect) // Interrupt from Input Capture event - used for pulse width measurement
 {
 
-		if( TCCR1B & _BV(ICES1) )	// if bit set then a rising edge has been detected
+		if( TCCR1B & _BV(ICES1) )		// if bit set then a rising edge has been detected
 			{
-				measurement_1 = ICR1;				// remember counter value
+				measurement_1 = ICR1;	// remember counter value
 				BIT_CLEAR(TCCR1B, _BV(ICES1) );		// clear bit in order to detect falling edge next time
 			}
 
-			else					// if bit cleared then a falling edge has been detected
+			else						// if bit cleared then a falling edge has been detected
 			{
-				measurement_2 = ICR1;				// remember counter value
+				measurement_2 = ICR1;			// remember counter value
 
 				BIT_SET(TCCR1B, _BV(ICES1) );		// set bit in order to detect rising edge next time
 
-				if(flag == 0)						// choose from which sensor we got measurement on basis of 'flag' var
+				if(flag == 0)				// choose from which sensor we got measurement on basis of 'flag' var
 				{
 					distance_right =   ( measurement_2 - measurement_1 ) / 58 ;	// calculate distance
 
@@ -213,7 +213,7 @@ ISR(TIMER1_CAPT_vect) // Interrupt from Input Capture event - used for pulse wid
 
 }
 
-ISR(TIMER2_OVF_vect) // Interrupt from timer2 overflow event -
+ISR(TIMER2_OVF_vect) 			// Interrupt from timer2 overflow event -
 {					//it provides proper working cycle between sensors: right->left->middle->right etc. and constant time
 
 	BIT_CLEAR( mux_control_port , (mux_a_pin | mux_b_pin) );
@@ -222,7 +222,7 @@ ISR(TIMER2_OVF_vect) // Interrupt from timer2 overflow event -
 	{
 
 		BIT_SET( mux_control_port , hcsr04_right_mux );		// set multiplexer
-		hcsr04_trigger_pulse();								// enable sensor
+		hcsr04_trigger_pulse();					// enable sensor
 
 	}
 
@@ -266,36 +266,36 @@ int main()
 	//lcd_print(0x80 + 0x40,0,0);
 
 
-	sei();						// enable global interrupts
+	sei();					// enable global interrupts
 
 	while(1)
 	{
 
-		if(distance_front < FRONT_TRIGGER_DISTANCE) // check if there is an obstacle in front of robot
-		{											// if true check distances from left and right side to decide where to go
+		if(distance_front < FRONT_TRIGGER_DISTANCE)	// check if there is an obstacle in front of robot
+		{						// if true check distances from left and right side to decide where to go
 
 			BIT_CLEAR( mux_control_port , (mux_a_pin | mux_b_pin) );
 
-			BIT_SET( mux_control_port , hcsr04_right_mux );			// prepare mux for right sensor
+			BIT_SET( mux_control_port , hcsr04_right_mux );		// prepare mux for right sensor
 			flag = 0;
 			measurement_finish_flag = 1;
 
 
 			hcsr04_trigger_pulse();
 
-			while( measurement_finish_flag )						// measure right distance
+			while( measurement_finish_flag )			// measure right distance
 			asm volatile ("nop");
 
 			BIT_CLEAR( mux_control_port , (mux_a_pin | mux_b_pin) );
 
 
-			BIT_SET( mux_control_port , hcsr04_left_mux );			// prepare mux for left sensor
+			BIT_SET( mux_control_port , hcsr04_left_mux );		// prepare mux for left sensor
 			flag = 1;
 			measurement_finish_flag = 1;
 
 			hcsr04_trigger_pulse();
 
-			while( measurement_finish_flag )						// measure left distance
+			while( measurement_finish_flag )			// measure left distance
 			asm volatile ("nop");
 
 			BIT_CLEAR( mux_control_port , (mux_a_pin | mux_b_pin) ); // reset mux
@@ -318,7 +318,7 @@ int main()
 			steer_right(&distance_left , SIDE_TRIGGER_DISTANCE - 5);	// if true steer right in order to avoid
 		}
 
-		else if(distance_right < SIDE_TRIGGER_DISTANCE)	// check if there is an obstacle from right
+		else if(distance_right < SIDE_TRIGGER_DISTANCE)		// check if there is an obstacle from right
 		{
 			steer_left(&distance_right , SIDE_TRIGGER_DISTANCE - 5);	// if true steer left in order to avoid
 		}
